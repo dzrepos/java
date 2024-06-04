@@ -1,0 +1,436 @@
+ROUTE CONTROLLER
+------------------------------------------------------------------------
+package com.infy.api;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import com.infy.dto.RouteDTO;
+import com.infy.entity.RouteEntity;
+import com.infy.repository.RouteRepo;
+import com.infy.service.RouteService;
+@RestController
+@RequestMapping(value = "/routes")
+public class RouteController {
+ @Autowired
+ private RouteService routeService;
+ @Autowired
+ private RouteRepo routeRepo;
+ @PostMapping
+ public int addRoute(@RequestBody RouteDTO routedto) {
+ routeService.addRoute(routedto);
+ return 0;
+ }
+ @GetMapping("/routes/{routeId}")
+ public String getRouteDetails(@PathVariable int routeID) {
+ Optional<RouteEntity> route= routeRepo.findById(routeID);
+ int x=route.get().getId(); // if in question route id is asked use this. if he asks complete route details comment this line and return route.
+  System.out.println(x);
+ return "done";
+ }
+ @PutMapping("/routes/{routeId}")
+ public int updateRoute(@PathVariable int id,String updatedSource,String updatedDestination) {
+ return routeService.updateRoute(id,updatedSource,updatedDestination);
+ }
+}
+=========================================================================================================
+TRAIN CONTROLLER
+--------------------------------------------------------
+package com.infy.api;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import com.infy.dto.TrainDTO;
+import com.infy.entity.TrainEntity;
+import com.infy.service.TrainService;
+public class TrainController {
+ @Autowired
+ private TrainService trainService;
+ @PostMapping
+ public int addTrain(@RequestBody TrainDTO traindto) {
+ return trainService.addTrain(traindto);
+ }
+ @DeleteMapping("/routes/{routeId}/{trainId}")
+ public TrainEntity deleteTrainDetails(@PathVariable int trainId) {
+ return trainService.deleteTrainDetails(trainId);
+ }
+ @PutMapping("/trains/{trainId}")
+ public ResponseEntity<String> updateTrainFare(@PathVariable int id,double updatedFare){
+ return new ResponseEntity<String>("Updated Response:"+updatedFare,HttpStatus.OK);
+ }
+}
+======================================================================================================
+ROUTE DTO
+----------------------
+package com.infy.dto;
+import org.springframework.lang.NonNull;
+import com.infy.entity.TrainEntity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Pattern;
+public class RouteDTO {
+ @GeneratedValue
+ @Max(3)
+ private int id;
+ @NonNull
+ @Pattern(regexp="[A_Za-z]")
+ private String source;
+ @NonNull
+ @Pattern(regexp="[A_Za-z]")
+ private String destination;
+ @NonNull
+ private TrainEntity traindto;
+ public RouteDTO() {
+ super();
+ }
+ public RouteDTO( int id, String source,String destination, TrainEntity traindto) {
+ super();
+ this.id = id;
+ this.source = source;
+ this.destination = destination;
+ this.traindto = traindto;
+ }
+ public int getId() {
+ return id;
+ }
+ public void setId(int id) {
+ this.id = id;
+ }
+ public String getSource() {
+ return source;
+ }
+ public void setSource(String source) {
+ this.source = source;
+ }
+ public String getDestination() {
+ return destination;
+ }
+ public void setDestination(String destination) {
+ this.destination = destination;
+ }
+ public TrainEntity getTraindto() {
+ return traindto;
+ }
+ public void setTraindto(TrainEntity traindto) {
+ this.traindto = traindto;
+ }
+ @Override
+ public String toString() {
+ return "RouteDTO [id=" + id + ", source=" + source + ", destination=" + destination + "]";
+ }
+}
+=========================================================================================================
+TRAIN DTO
+------------------------
+package com.infy.dto;
+public class TrainDTO {
+ private int id;
+ private String trainName;
+ private String arrivalTime;
+ private String departureTime;
+ private double fare;
+ public TrainDTO() {
+ super();
+ }
+ public TrainDTO(int id, String trainName, String arrivalTime, String departureTime, double fare) {
+ super();
+ this.id = id;
+ this.trainName = trainName;
+ this.arrivalTime = arrivalTime;
+ this.departureTime = departureTime;
+ this.fare = fare;
+ }
+ public int getId() {
+ return id;
+ }
+ public void setId(int id) {
+ this.id = id;
+ }
+ public String getTrainName() {
+ return trainName;
+ }
+ public void setTrainName(String trainName) {
+ this.trainName = trainName;
+ }
+ public String getArrivalTime() {
+ return arrivalTime;
+ }
+ public void setArrivalTime(String arrivalTime) {
+ this.arrivalTime = arrivalTime;
+ }
+ public String getDepartureTime() {
+ return departureTime;
+ }
+ public void setDepartureTime(String departureTime) {
+ this.departureTime = departureTime;
+ }
+ public double getFare() {
+ return fare;
+ }
+ public void setFare(double fare) {
+ this.fare = fare;
+ }
+ @Override
+ public String toString() {
+ return "TrainDTO [id=" + id + ", trainName=" + trainName + ", arrivalTime=" + arrivalTime + ", departureTime="
+  + departureTime + ", fare=" + fare + "]";
+ }
+}
+========================================================================================================
+ROUTE ENTITY
+------------------------
+package com.infy.entity;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+@Entity
+@Table(name="Routes")
+public class RouteEntity {
+ @Id
+ @GeneratedValue(strategy=GenerationType.IDENTITY)
+ private int id;
+ private String source;
+ private String destination;
+ @ManyToOne(cascade = CascadeType.ALL)
+ @JoinColumn(name="trainid")
+ private TrainEntity trainEntity;
+ public RouteEntity() {
+ super();
+ }
+ public RouteEntity(int id, String source, String destination, TrainEntity trainEntity) {
+ super();
+ this.id = id;
+ this.source = source;
+ this.destination = destination;
+ this.trainEntity = trainEntity;
+ }
+ public int getId() {
+ return id;
+ }
+ public void setId(int id) {
+ this.id = id;
+ }
+ public String getSource() {
+ return source;
+ }
+ public void setSource(String source) {
+ this.source = source;
+ }
+ public String getDestination() {
+ return destination;
+ }
+ public void setDestination(String destination) {
+ this.destination = destination;
+ }
+ public TrainEntity getTrainEntity() {
+ return trainEntity;
+ }
+ public void setTrainEntity(TrainEntity trainEntity) {
+ this.trainEntity = trainEntity;
+ }
+}
+==========================================================================================================
+TRAIN ENTITY
+--------------------------------
+package com.infy.entity;
+import org.springframework.data.annotation.Id;
+import jakarta.persistence.Entity;
+@Entity
+public class TrainEntity {
+ @Id
+ private int id;
+ private String trainName;
+ private String arrivalTime;
+ private String departureTime;
+ private double fare;
+ public int getId() {
+ return id;
+ }
+ public void setId(int id) {
+ this.id = id;
+ }
+ public String getTrainName() {
+ return trainName;
+ }
+ public void setTrainName(String trainName) {
+ this.trainName = trainName;
+ }
+ public String getArrivalTime() {
+ return arrivalTime;
+ }
+ public void setArrivalTime(String arrivalTime) {
+ this.arrivalTime = arrivalTime;
+ }
+ public String getDepartureTime() {
+ return departureTime;
+ }
+ public void setDepartureTime(String departureTime) {
+ this.departureTime = departureTime;
+ }
+ public double getFare() {
+ return fare;
+ }
+ public void setFare(double fare) {
+ this.fare = fare;
+ }
+}
+====================================================================================================
+ROUTE REPOSITORY
+----------------------
+package com.infy.repository;
+import org.springframework.data.jpa.repository.JpaRepository;
+import com.infy.entity.RouteEntity;
+public interface RouteRepo extends JpaRepository<RouteEntity, Integer> {
+}
+======================================================================================
+TRAIN REPOSITORY
+-------------------------
+package com.infy.repository;
+import org.springframework.data.jpa.repository.JpaRepository;
+import com.infy.entity.TrainEntity;
+public interface TrainRepo extends JpaRepository<TrainEntity, Integer>{
+}
+=================================================================================================
+ROUTE SERVICE
+----------------------
+package com.infy.service;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.infy.dto.RouteDTO;
+import com.infy.entity.RouteEntity;
+import com.infy.repository.RouteRepo;
+import com.infy.util.Convertor;
+@Service
+public class RouteService {
+ @Autowired
+ private Convertor convertor;
+ @Autowired
+ private RouteRepo routeRepo;
+ public int addRoute(RouteDTO routedto) {
+ routeRepo.saveAndFlush(convertor.getRouteEntity(routedto));
+ return routedto.getId();
+ }
+ public int updateRoute(int id,String updatedSource,String updatedDestination) {
+ Optional<RouteEntity> Optionalrentity=routeRepo.findById(id);
+ RouteEntity rentity=Optionalrentity.get();
+ rentity.setSource(updatedSource);
+ routeRepo.save(rentity);
+ rentity.setSource(updatedDestination);
+ routeRepo.save(rentity);
+ return id;
+ }
+}
+======================================================================================================
+TRAIN SERVICE
+------------------------
+package com.infy.service;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.infy.dto.TrainDTO;
+import com.infy.entity.TrainEntity;
+import com.infy.repository.TrainRepo;
+import com.infy.util.Convertor;
+public class TrainService {
+ @Autowired
+ private TrainRepo trainRepo;
+ @Autowired
+ private Convertor convertor;
+ public int addTrain(TrainDTO traindto) {
+ trainRepo.saveAndFlush(convertor.getEntity(traindto));
+ return traindto.getId();
+ }
+ public TrainEntity deleteTrainDetails(Integer trainId) {
+ trainRepo.deleteById(trainId);
+ TrainDTO traindto=new TrainDTO();
+ return trainRepo.saveAndFlush(convertor.getEntity(traindto));
+ }
+ public int updateTrain(int id, String updatedtrainName) {
+ Optional<TrainEntity> Optionaltentity=trainRepo.findById(id);
+ TrainEntity tentity=Optionaltentity.get();
+ tentity.setTrainName(updatedtrainName);
+ trainRepo.save(tentity);
+ return id;
+ }
+}
+===============================================================================================
+CONVERTOR
+-----------------------
+package com.infy.util;
+import org.springframework.stereotype.Component;
+import com.infy.dto.RouteDTO;
+import com.infy.dto.TrainDTO;
+import com.infy.entity.RouteEntity;
+import com.infy.entity.TrainEntity;
+@Component
+public class Convertor {
+ public TrainEntity getEntity(TrainDTO traindto) {
+ TrainEntity trainentity=new TrainEntity();
+ trainentity.setArrivalTime(traindto.getArrivalTime());
+ trainentity.setDepartureTime(traindto.getDepartureTime());
+ trainentity.setTrainName(traindto.getTrainName());
+ trainentity.setId(traindto.getId());
+ trainentity.setFare(traindto.getFare());
+ return trainentity;
+ }
+ public RouteEntity getRouteEntity(RouteDTO routedto) {
+ RouteEntity rentity=new RouteEntity();
+ rentity.setId(routedto.getId());
+ rentity.setSource(routedto.getSource());
+ rentity.setDestination(routedto.getDestination());
+ rentity.setTrainEntity(routedto.getTraindto());
+ return rentity;
+ }
+}
+============================================================================================
+INFY RAIL GLOBAL HANDLER
+--------------------------------
+package com.infy.util;
+import java.time.LocalDateTime;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import com.infy.exception.InfyRailException;
+import jakarta.validation.ConstraintViolationException;
+@RestControllerAdvice
+public class InfyRailGlobalHandler {
+ @Autowired
+ Environment environment;
+ @ExceptionHandler({MethodArgumentNotValidException.class,ConstraintViolationException.class})
+ public ResponseEntity<ErrorInformation> exceptionHandler(Exception ex) {
+ ErrorInformation error = new ErrorInformation();
+ error.setErrorMessage(environment.getProperty("General.EXCEPTION_MESSAGE"));
+ error.setErrorCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+ error.setTimestamp(LocalDateTime.now());
+ return new ResponseEntity<ErrorInformation>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+ }
+ @ExceptionHandler(InfyRailException.class)
+ public ResponseEntity<ErrorInformation> infyBankExceptionHandler(InfyRailException exception) {
+ ErrorInformation error = new ErrorInformation();
+ error.setErrorMessage(environment.getProperty(exception.getMessage()));
+ error.setTimestamp(LocalDateTime.now());
+ error.setErrorCode(HttpStatus.OK.value());
+ return new ResponseEntity<ErrorInformation>(error, HttpStatus.OK);
+ }
+}
+========================================================================================================

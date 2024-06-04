@@ -1,0 +1,81 @@
+
+ INFYBookMYDoctor
+1: application.properties
+server.port=8082
+server.servlet.context.path="/infybookmydoctor"
+IMPL
+public void PatientDTO registerPatient(PatientDTO patientDTO){
+Optional<DoctorEntity> doctor = doctorRepository.findByNameAndType(patientDTO.getDoctorName(),patientDTO.getDoctorType());
+DoctorEntity doc= doctor.orElseThrow(()->new InfyBookMyDoctorException(InfyBookMyDoctorConstants.DOCTOR_NOT_FOUND.toString()));
+Optional<PatientEntity> patient = patientRepository.findByPhoneNUmber(patientDTO.getPhoneNumber());
+if(patient.isPresent()){
+throw new InfyBookMyDoctorException(InfyBookMyDoctorConstants.PHONE_NO_NOT_UNIQUE.toString());
+}
+PatientEntity pe = PatientDTO.prepareEntityPatient(patientDTO)'
+pe.setDoctor(doc);
+patientRepository.save(pe);
+return patientDTO;
+DTO Class:
+PatientDTO
+@NotNull(message="{patient.name.notpresent}")
+@Pattern(regex="([A-Z]{1}[a-z]*\\s*)+",message="{patient.name.invalid}")
+private Stringh patientName;
+@NotNull(message="{patient.phoneNo.notpresent}")
+@Min(value=1000000000,message="{patient.phoneNo.invalid}")
+@Max(value=9999999999,message="{patient.phoneNo.invalid}")
+private Long patientPhoneNumber;
+@NotNull(message="{patient.doctor.notpresent}")
+@Valid
+private DoctorDTO doctorDTO;
+DoctorDTO:
+@NotNull(message="{doctor.doctorType.notpresent}")
+@Pattern(regex="(skin|eye|dental),message="{doctor.doctortype.invalid}")
+private String doctorType;
+@NotNull(message="{doctor.name.notpresent}")
+@Pattern(regex="(^[A-Z][a-z]+$)",message="{doctor.name.invalid}")
+API class
+@RestController
+@Validated
+public class PatientAPI{
+@Autowired
+private BookMyDoctorService bookMyDoctorService;
+@GetMapping(value="/patients/{patientName}"
+public ResponseEntity<List<PatientDTO>> getDetailsByPatientName(@PathVariable @Pattern(regex="[a-z]+",message="{patient.name.invalid}") String patientName)
+throws InfyBookMyDoctorException {
+List<PatientDTO> list = bookMyDoctorService.getDetailsByPatientName(patientName);
+retrun new ResponseEntity<>(list,HttpStatus.Ok);
+ }
+@PostMapping(value="/register")
+public ResponseEntity<PatientDTO> registerPatient(@Valid @RequestBody PatientDTO patientDTO) throws InfyBookMyDoctorException
+{
+return new ResponseEntity<>(bookMyDoctorService.registerPatient(patientDTO),HttpStatus.CREATED);
+}
+@PutMapping(value="patients/{appointmentId}")
+public ResponseEntity<PatientDTO> updatePatient( @PathVariable Integer appointmentId, @Min(value=1000000000,message="{patient.phoneNo.invalid}")
+                    @Max(value=9999999999,message="{patient.phoneNo.invalid}") @RequestParam Long phoneNo) throws InfyBookMyDoctorException {
+return new ResponseEntity<>(bookMyDoctorService.updatePatient(appointmentId,phoneNo),HttpStatus.OK):
+}
+@DeleteMapping(value="patients/{phoneNo}")
+public String deletePatient(@Min(value=1000000000,message="{patient.phoneNo.invalid}")
+  @Max(value=9999999999,message="{patient.phoneNo.invalid}") @PathVariable Long phoneNo) throws InfyBookMyDoctorException {
+return bookMyDoctorService.deletePatient(phoneNo);
+}
+/// ExceptionHandler
+@RestControllerAdvice
+@ExceptionHandler(Exception.class)
+public ResponseEntity <ErrorInfo> generalExceptionhandler(Exception ex){
+logger.error(ex.getMessage(),ex);
+ErrorInfo error = new ErrorInfo();
+error.setErrorCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+error.setErrorMsg(environment.getProperty(InfyBookMyDoctorConstants.INFYBOOKMYDOCTOR_EXCEPTIONMSG_GENERAL.toString());
+return new ResponseEntity<>(error,HttpStatus.INTERNAL_SERVER_ERROR);
+}
+@ExceptionHandler(InfyBookMyDoctorExceptionHandler.class)
+public ResponseEntity <ErrorInfo> InfyBookMyDoctorExceptionHandler(InfyBookMyDoctorExceptionHandler ex){
+logger.error(ex.getMessage(),ex);
+ErrorInfo error = new ErrorInfo();
+error.setErrorCode(HttpStatus.BAD_REQUEST.value());
+error.setErrorMsg(environment.getProperty(ex.getMessage()));
+return new ResponseEntity<>(error,HttpStatus.BAD_REQUEST);
+}
+ 

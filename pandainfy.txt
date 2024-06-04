@@ -1,0 +1,264 @@
+==controller=====
+package com.infy.api;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import com.infy.dto.ItemDTO;
+import com.infy.dto.OrderDTO;
+import com.infy.dto.RestaurantDTO;
+import com.infy.exception.InfyPandaException;
+import com.infy.service.InfyPandaService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+@RestController
+@Validated
+public class InfyPandaController {
+ @Autowired
+ private InfyPandaService infyPandaService;
+ @GetMapping(value="/restaurants/{itemName}")
+ public List<RestaurantDTO> searchRestaurantsWithItemName(@PathVariable String itemName)
+ throws InfyPandaException {
+ List<RestaurantDTO> restaurants=infyPandaService.searchRestaurantsWithItemName(itemName.trim());
+ return restaurants;
+ }
+ @GetMapping(value="/items/{restaurantName}")
+ public List<ItemDTO> searchItemsByRestaurantName (@PathVariable String restaurantName) throws InfyPandaException {
+ List<ItemDTO> item = infyPandaService.searchItemsByRestaurantName(restaurantName.trim());
+ return item;
+ }
+ @PostMapping(value="/order")
+ public String placeOrder(@Valid @RequestBody OrderDTO orderDTO) throws InfyPandaException {
+ String successMessage=infyPandaService.placeOrder(orderDTO);
+ return successMessage;
+ }
+ @PutMapping(value="order/{orderId}/{quantityNew}")
+  public String updateOrder(@PathVariable @Min(value=1, message="{order.orderid.invalid}") Integer orderId,
+   @PathVariable @Min(value=1, message= "{order.quantity.invalid}") Integer quantityNew)
+    throws InfyPandaException {
+ String successMessage= infyPandaService.updateOrder(orderId, quantityNew);
+ return successMessage;
+ }
+ @DeleteMapping(value="/order/{orderId}")
+ public String cancelOrder(@PathVariable @Min(value=1, message="{order.orderid.invalid}") Integer orderId)
+ throws InfyPandaException {
+ String msg= infyPandaService.cancelOrder(orderId);
+ return msg;
+ }
+}
+===============================================
+===DTO====
+package com.infy.dto;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+public class OrderDTO {
+ @NotNull(message = "{order.itemname.invalid}")
+ @Pattern(regexp="[//S]+[//S//s]+", message="{order.itemname.invalid}")
+ private String itemName;
+ @NotNull(message = "{order.restaurantname.invalid}")
+ @Pattern(regexp="[//S]+[//S//s]+", message="{order.restaurantname.invalid}")
+ private String restaurantName;
+  @Min(value=1, message ="{order.quantity.invalid}")
+ private int quantity;
+ public String getItemName() {
+ return itemName;
+ }
+ public void setItemName(String itemName) {
+ this.itemName = itemName;
+ }
+ public String getRestaurantName() {
+ return restaurantName;
+ }
+ public void setRestaurantName(String restaurantName) {
+ this.restaurantName = restaurantName;
+ }
+ public int getQuantity() {
+ return quantity;
+ }
+ public void setQuantity(int quantity) {
+ this.quantity = quantity;
+ }
+ @Override
+ public String toString() {
+ return "OrderDTO [itemName=" + itemName + ", restaurantName=" + restaurantName + ", quantity=" + quantity + "]";
+ }
+}
+==============================================
+===serviceImpl=====
+package com.infy.service;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import org.hibernate.cache.spi.support.AbstractReadWriteAccess.Item;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Service;
+import com.infy.dto.ItemDTO;
+import com.infy.dto.OrderDTO;
+import com.infy.dto.RestaurantDTO;
+import com.infy.exception.InfyPandaException;
+import com.infy.repository.ItemRepository;
+import com.infy.repository.OrderRepository;
+import com.infy.repository.RestaurantRepository;
+import jakarta.persistence.criteria.Order;
+import jakarta.transaction.Transactional;
+@Service
+@PropertySource("classpath:ValidationMessage.properties")
+public class InfyPandaServiceImpl implements InfyPandaService {
+ @Autowired
+ private ItemRepository itemRepository;
+ @Autowired
+ private RestaurantRepository restaurantRepository;
+ @Autowired
+ private OrderRepository orderRepository;
+ @Autowired
+ private Environment environment;
+ private static final String CANCELLED="CANCELLED";
+ @Override
+ public List<RestaurantDTO> searchRestaurantsWithItemName(String itemName) throws InfyPandaException {
+ Item item = itemRespository.fingByItemNameIgnoreCase(itemName);
+ if(item == null) {
+  throw new InfyPandaException(InfyPandaConstants.INFYPANDA_ITEM_NAME_INVALID.toString());
+ }
+ List<RestaurantDTO>restaurantlist = new ArrayList<>();
+ List<Restaurant>restaurants=item.getRestaurants();
+ for(Restaurant restaurant:restaurants) {
+  restaurantlist.add(RestaurantDTO.valueOf(restaurant));
+ }
+ return restaurantlist;
+ }
+ @Override
+ public List<ItemDTO> searchItemsByRestaurantName(String restaurantName) throws InfyPandaException {
+ Restaurant restaurant = restaurantRepository.findByRestaurantNameIgnoreCase(restaurantName);
+ if(restaurant==null)
+  throw new InfyPandaException(InfyPandaConstants.INFYPANDA_RESTAURANT_NAME_INVALID.toString());
+ List<ItemDTO> itemsList = new ArrayList<>();
+ List<Item> items = restaurant.getItems();
+ for(Item item : items) {
+  itemsList.add(ItemDTO.valueOf(item));
+ }
+ return itemsList;
+ }
+ @Override
+ @Transactional
+ public String placeOrder(OrderDTO orderDTO) throws InfyPandaException{
+ Restaurant restaurant = restaurantRepository.findByRestaurantNameIgnoreCase(orderDTO.getRestaurantName());
+ if(restaurant==null)
+  throw new InfyPandaException(InfyPandaConstants.INFYPANDA_RESTAURANT_NAME_INVALID.toString());
+ List<Item> itemsList= restaurant.getItems();
+ for(Item item: itemsList) {
+  if(item.getItemName().equalsIgnoreCase(orderDTO.getItemName())) {
+  int total = orderDTO.getQuantity() * item.getPrice();
+  Order order = new Order();
+  order.setRestaurantId(restaurant.getRestaurantId());
+  order.setItemId(item.getItemId());
+  order.setAmount(total);
+  order.setStatus("CONFIRMED");
+  int orderId =orderRepository.save(order).getOrderId();
+ return environment.getProperty(InfyPandaConstants.INFYPANDA_PLACEORDER_SUCCESS1.toString())
+   +item.getItemName() +" "
+   +environment.getProperty(InfyPandaConstants.INFYPANDA_PLACEORDER_SUCCESS2.toString())
+   +restaurant.getRestaurantName()
+   +environment.getProperty(InfyPandaConstants.INFYPANDA_PLACEORDER_SUCCESS3.toString())
+            + orderId
+   +environment.getProperty(InfyPandaConstants.INFYPANDA_PLACEORDER_SUCCESS4.toString())
+   + total +" "
+   +environment.getProperty(InfyPandaConstants.INFYPANDA_PLACEORDER_SUCCESS5.toString());
+  }
+ }
+ throw new InfyPandaException(InfyPandaConstants.INFYPANDA_ORDER_ITEM_INVALID.toString());
+ }
+ @Override
+ @Transactional
+ public String updateOrder(int orderId, int quantityNew) throws InfyPandaException {
+ Optional<Order> orderOpt = orderRepository.findById(orderId);
+ if(!orderOpt.isPresent()) {
+  throw new InfyPandaException(InfyPandaConstans.INFYPANDA_ORDER_NOT_FOUND.toString());
+  Item item = itemRepository.findById(order.getItemId()).get();
+  int quantityOld = order.getAmount()/item.getPrice();
+  if(quantityOld==quantityNew)
+  throw new InfyPandaException(InfyPandaConstants.INFYPANDA_UPDATE_QUANTITY_INVALID.toString());
+  int total = quantityNew * item.getPrice();
+  order.setAmount(total);
+  return environment.getProperty(InfyPandaConstants.INFYPANDA_UPDATE_SUCCESS1.toString())+orderId +""
+   +environment.getProperty(InfyPandaConstants.INFYPANDA_UPDATE_SUCCESS2.toString())+total;
+ }
+ }
+ @Override
+ @Transactional
+ public String cancelOrder(int orderId) throws InfyPandaException {
+ Optional<Order> orderOpt = orderRepository.findById(orderId);
+ if(!orderOpt.isPresent())
+  throw new InfyPandaException(InfyPandaConstants.INFYPANDA_ORDER_NOT_FOUND.toString());
+ Order order= orderOpt.get();
+ if(order.getStatus().equals(CANCELLED)) {
+  throw new InfyPandaException(InfyPandaConstants.INFYPANDA_ORDER_ALREADY_CANCELLED.toString());
+ }
+ order.setStatus(CANCELLED);
+ return environment.getProperty(InfyPandaConstants.INFYPANDA_CANCEL_ORDER_SUCCESS.toString());
+ }
+}
+======================================
+==exception controller=======
+package com.infy.utility;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import com.infy.exception.InfyPandaException;
+import jakarta.validation.ConstraintViolationException;
+@RestControllerAdvice
+public class ExceptionControllerAdvice {
+ private final Logger logger = LoggerFactory.getLogger(this.getClass());
+ @Autowired
+  private Environment environment;
+ @ExceptionHandler(Exception.class)
+ public ResponseEntity<ErrorInfo> generalExceptionHandler(Exception ex) {
+ logger.error(ex.getMessage(),ex);
+ ErrorInfo errorInfo = new ErrorInfo();
+ errorInfo.setErrorCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+ errorInfo.setErrorMsg(environment.getProperty(InfyPandaConstants.INFYPANDA_EXCEPTIONMSG_GENERAL.toString()));
+ return new ResponseEntity<>(errorInfo,HttpStatus.INTERNAL_SERVER_ERROR);
+ }
+ @ExceptionHandler(InfyPandaException.class)
+ public ResponseEntity<ErrorInfo> infyPandaExceptionHandler(InfyPandaException ex) {
+ logger.error(ex.getMessage(),ex);
+ ErrorInfo errorInfo= new ErrorInfo();
+ errorInfo.setErrorCode(HttpStatus.BAD_REQUEST.value());
+ errorInfo.setErrorMsg(environment.getProperty(ex.getMessage()));
+ return new ResponseEntity<>(errorInfo,HttpStatus.BAD_REQUEST);
+ }
+ @ExceptionHandler({MethodArgumentNotValidException.class, ConstraintViolationException.class})
+ public ResponseEntity<ErrorInfo> exceptionHandler(Exception ex) {
+ logger.error(ex.getMessage(),ex);
+ String errorMsg;
+ if(ex instanceof MethodArgumentNotValidException) {
+  MethodArgumentNotValidException manve=(MethodArgumentNotValidException)ex;
+  errorMsg=manve.getBindingResult().getAllErrors().stream().map(x-> x.getDefaultMessage())
+   .collect(Collectors.joining(" , "));
+ } else {
+  ConstraintViolationException cve=(ConstraintViolationException) ex;
+  errorMsg = cve.getConstraintViolations().stream().map(x-> x.getMessage())
+   .collect(Collectors.joining(" , "));
+ }
+ ErrorInfo errorInfo = new ErrorInfo();
+ errorInfo.setErrorCode(HttpStatus.BAD_REQUEST.value());
+ errorInfo.setErrorMsg(errorMsg);
+ return new ResponseEntity<>(errorInfo, HttpStatus.BAD_REQUEST);
+ }
+}

@@ -1,0 +1,121 @@
+🛑Final - MCQ
+ 
+ 
+1) any three option select :-
+  -- @RequestMapping annotation by default, handles all types of HTTP requests:
+  --@RestController annotation is the combination of @Controller and @ResponseBody annotations:
+  --@ResponseBody annotation indicates that the value returned by a method is bound to the body of HTTP response:
+ 
+2)http://localhost:8080/api/customer?customerid=1001
+ 
+3)Only a -- ResponseEntity
+ 
+4)No output can be obtained as @RequestMapping and @GetMapping annotations are combined together.
+ 
+5)i,ii,iii,iv -- SOAP question
+ 
+6)Only a -- Glady question
+ 
+7)http://localhost:8080/person?version=1
+ 
+8)@PathVariable
+ 
+9) Option C -- Webservice Question
+ 
+10)@RequestBody
+11)http://localhost:9094/100?version=1
+ 
+12)Only i & iii -- EnablewebSecurity question
+ 
+13)new RestTemplate().getForObject(url, List.class)
+ 
+14)Stateless -- Roger question
+ 
+15)Required
+ 
+16)Dispatcher servlet takes care of the requests in Spring MVC whereas that is not the case in Spring REST.
+ 
+17)A plain String of value "welcome" will be rendered
+ 
+18)URI versioning and Media type versioning
+ 
+19)Put
+ 
+20)VM1-8085 -- question
+Option 1: @GetMapping("/customers/{location}/{purchaseAmount}") public CustomerDTO getCustomer(@PathVariable("location") String location, @PathVariable("purchaseAmount") int purchaseAmount)
+Option 3: @GetMapping("/customers/{location}/{purchaseAmount}") public CustomerDTO getCustomer(@PathVariable String location, @PathVariable int purchaseAmount)
+ 
+21)A view named "welcome".
+ 
+22)User result = restTemplate.postForObject(url, user, User.class);
+ 
+23)new RestTemplate().postForObject("http://localhost:9090/save", custDTO, Void.class)
+ 
+24)http://ip:port/appname/serviceuri.xml
+http://ip:port/appname/serviceuri.json
+ 
+25)"Samuel null" will be rendered as the response.
+ 
+26)Only a & c -- Glady question
+ 
+27)@CrossOrigin question--
+the correct options are:
+ 
+1)@CrossOrigin is used to enable cross-origin resource sharing (CORS)
+2)By default @CrossOrigin allows all origins and the HTTP methods
+4)By customizing CORS Configuration, one can even make only certain clients or requests to be serviced over the network
+ 
+28)Option A -- architectural style question
+ 
+29)
+the correct options are:
+2)Methods of the class having @Controller annotation can be accessed via URI
+4)Methods of the class having @RestController annotation can be accessed via URI
+ 
+30)"text/html"
+ 
+31)The fetchLocation method can handle the GET request with URL: http://localhost:8081/location/Asia/India?capital=Delhi
+ 
+32)getForObject()
+ 
+33)"Sangamithra english" will be rendered as the response
+ 
+34)implement the WebMvcConfigurer and override the addCorsMappings method, to specify the URL to be allowed.
+ 
+35)JAX RS is the specification for RESTful services whereas JAX WS is the specification for SOAP/REST based services.
+ 
+36)@GetMapping(produces="text/plain") public String fetchEmployee(@RequestParam String name, @RequestParam String email) { return "Name: "+name+" Email Id:"+email; }
+ 
+ 
+37)The attribute "demo" indicates the controller class that should be used, for the corresponding browser request.
+ 
+38)only A -- Putmapping
+ 
+39)only i and ii -- combination of @Controller question
+ 
+40)RestEasy bundle -- Only B
+ 
+41)Web service
+ 
+42)Web application will be having all the layers, model, view and controller whereas Webservice will be having only the model and controller layer
+ 
+43)Annotations that maps a method in the Controller class to a browser request, based on HTTP method.
+ 
+44)
+1)RestTemplate is a REST client that is used for consuming RESTful services
+3)RestTemplate can be autowired in the places required
+ 
+45)@RestController
+ 
+46)No, as we are creating REST services using Spring MVC project, it is not an implementation of JAX RS.
+ 
+47)@ResponseBody annotation is missing before the return type of the method.
+ 
+ 
+48)Exception will be thrown as given URL doesn't matches any of the API methods.
+ 
+ 
+49)the view named “welcome” will be rendered on hitting “/home”
+ 
+ 
+50)RestTemplate.
